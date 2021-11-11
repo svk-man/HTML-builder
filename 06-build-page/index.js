@@ -1,4 +1,4 @@
-const { mkdir, readdir, copyFile, access, createWriteStream, createReadStream } = require('fs');
+const { mkdir, readdir, copyFile, access, createWriteStream, createReadStream, rmdir } = require('fs');
 const path = require('path');
 
 const directory = 'project-dist';
@@ -102,14 +102,18 @@ function copyDirectory(sourcePath, destPath) {
         }
       });
 
-      readdir(destPath, function(err, files) {
+      readdir(destPath, {withFileTypes: true}, function(err, dirents) {
         if (!err) {
-          for (const file of files) {
-            const fileSourcePath = path.join(sourcePath, file);
-            const fileDestPath = path.join(destPath, file);
-            access(fileSourcePath, (err) => {
+          for (const dirent of dirents) {
+            const direntSourcePath = path.join(sourcePath, dirent.name);
+            const direntDestPath = path.join(destPath, dirent.name);
+            access(direntSourcePath, (err) => {
               if (err) {
-                unlink(fileDestPath, function() {});
+                if (dirent.isFile()) {
+                  unlink(direntDestPath, function() {});
+                } else {
+                  rmdir(direntDestPath, { recursive: true }, function() {});
+                }
               }
             });
           }
